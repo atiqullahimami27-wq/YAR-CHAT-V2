@@ -86,13 +86,15 @@ def home():
 @app.post("/api/check")
 def check_user():
     data = request.get_json(silent=True) or {}
+
+    print("INIT_DATA_LENGTH:", len(data.get("initData", "")))
+
     telegram_user = verify_telegram(data.get("initData", ""))
 
     if not telegram_user:
         return {"ok": False, "message": "ورود معتبر نیست."}, 401
 
     user_id = telegram_user.get("id")
-
     async def find_user():
         conn = await asyncpg.connect(DATABASE_URL)
         try:
