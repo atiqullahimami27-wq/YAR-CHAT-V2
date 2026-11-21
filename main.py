@@ -79,7 +79,7 @@ def verify_telegram(init_data):
     except (ValueError, KeyError, TypeError):
         return None
 
-@@app.get("/")
+@app.get("/")
 def home():
     return render_template("index.html")
 
