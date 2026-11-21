@@ -7,7 +7,7 @@ import time
 from urllib.parse import parse_qsl
 
 import asyncpg
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 
 app = Flask(__name__)
 
@@ -79,9 +79,9 @@ def verify_telegram(init_data):
     except (ValueError, KeyError, TypeError):
         return None
 
-@app.get("/")
+@@app.get("/")
 def home():
-    return render_template_string(LOGIN_PAGE)
+    return render_template("index.html")
 
 @app.post("/api/check")
 def check_user():
