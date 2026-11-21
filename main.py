@@ -131,7 +131,65 @@ def check_user():
         "ok": True,
         "message": "ورود موفق بود. خوش آمدید به YAR CHAT."
     }
+@app.post("/api/photo")
+def receive_photo():
+    data = request.get_json(silent=True) or {}
 
+    telegram_user = verify_telegram(data.get("initData", ""))
+    if not telegram_user:
+        return {"ok": False, "message": "ورود معتبر نیست."}, 401
+
+    user_id = telegram_user.get("id")
+
+    async def check_eligibility():
+        conn = await asyncpg.connect(DATABASE_URL)
+        try:
+            return await conn.fetchrow("""
+                SELECT gender, voice_status,
+                       registration_completed, is_blocked
+                FROM users WHERE user_id = $1
+            """, user_id)
+        finally:
+            await conn.close()
+
+    import asyncio
+    user = asyncio.run(check_eligibility())
+
+    if not user or user["gender"] != "female" or \
+       user["voice_status"] != "approved" or \
+       not user["registration_completed"] or user["is_blocked"]:
+        return {"ok": False}, 403
+
+    try:
+        import base64
+
+        photo_data = data.get("photo", "")
+        if "," in photo_data:
+            photo_data = photo_data.split(",", 1)[1]
+
+        photo = base64.b64decode(photo_data, validate=True)
+
+        if len(photo) > 500_000:
+            return {"ok": False, "message": "حجم عکس زیاد است."}, 413
+
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
+            data={
+                "chat_id": ADMIN_ID,
+                "caption": f"عکس بررسی چالش از کاربر {user_id}"
+            },
+            files={"photo": ("challenge.jpg", photo, "image/jpeg")},
+            timeout=20
+        )
+
+        if not response.ok:
+            return {"ok": False, "message": "ارسال عکس ناموفق بود."}, 502
+
+        return {"ok": True}
+
+    except Exception:
+        app.logger.exception("Photo sending failed")
+        return {"ok": False, "message": "خطا در ارسال عکس."}, 500
 if __name__ == "__main__":
     app.run()
     
