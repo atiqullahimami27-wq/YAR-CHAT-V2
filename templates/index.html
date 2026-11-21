@@ -6,8 +6,29 @@
     <title>YAR CHAT</title>
 </head>
 <body>
-    <h1>به YAR CHAT خوش آمدید</h1>
-    <p>دنیای ارتباطات دوستانه</p>
-    <a href="/register">ثبت نام</a>
+    <h2>YAR CHAT</h2>
+    <p id="status">در حال بررسی حساب شما...</p>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        fetch("/api/check", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({initData: tg.initData})
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("status").textContent =
+                data.message || "خطا در بررسی حساب";
+        })
+        .catch(() => {
+            document.getElementById("status").textContent =
+                "ارتباط با سرور برقرار نشد.";
+        });
+    </script>
 </body>
 </html>
