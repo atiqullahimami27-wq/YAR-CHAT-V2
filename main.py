@@ -2,6 +2,7 @@
 import os
 import hmac
 import hashlib
+import requests
 import json
 import time
 from urllib.parse import parse_qsl
@@ -13,6 +14,7 @@ app = Flask(__name__)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 DATABASE_URL = os.environ["DATABASE_URL"]
+ADMIN_ID = os.environ["ADMIN_ID"]
 
 LOGIN_PAGE = """
 <!DOCTYPE html>
