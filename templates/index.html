@@ -1,34 +1,129 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YAR CHAT</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YAR CHAT</title>
+<style>
+body{font-family:Arial;background:#101827;color:white;text-align:center;padding:20px}
+.box{background:#1e293b;padding:18px;border-radius:15px;margin:15px 0}
+button{background:#0d9488;color:white;border:0;padding:12px 20px;border-radius:10px;margin:7px;font-size:16px}
+.option{display:block;width:100%;margin:9px 0}
+#challenge,#camera{display:none}
+video{width:100%;max-width:320px;border-radius:12px}
+</style>
 </head>
 <body>
-    <h2>YAR CHAT</h2>
-    <p id="status">در حال بررسی حساب شما...</p>
+<h2>YAR CHAT</h2>
+<p id="status">در حال بررسی حساب شما...</p>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+<div id="intro" class="box" style="display:none">
+<p>چالش ۶۰ ثانیه‌ای</p>
+<p>۳ سؤال درباره ربات و یک بازی ساده انجام بده.</p>
+<p>برای تأیید چالش، تایید سن ضروری است آیا شما بالای 18 سال هستید.</p>
+<button onclick="startChallenge()">شروع چالش</button>
+</div>
 
-        fetch("/api/check", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({initData: tg.initData})
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("status").textContent =
-                data.message || "خطا در بررسی حساب";
-        })
-        .catch(() => {
-            document.getElementById("status").textContent =
-                "ارتباط با سرور برقرار نشد.";
-        });
-    </script>
+<div id="challenge" class="box">
+<h3 id="timer">۶۰ ثانیه</h3>
+<div id="quiz">
+<h3 id="question"></h3>
+<div id="options"></div>
+</div>
+<div id="game" style="display:none">
+<h3>روی دایره بزن!</h3>
+<button onclick="hit()">بزن!</button>
+<p>امتیاز: <span id="score">0</span></p>
+</div>
+<div id="camera">
+<video id="video" autoplay playsinline muted></video>
+</div>
+<p id="result"></p>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+const tg=window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+let stream=null,seconds=60,score=0,questionIndex=0;
+let timer=null,photoTimer=null;
+const questions=[
+ {q:"YAR CHAT برای چه کاری ساخته شده؟",a:["ارتباط دوستانه","خرید لباس","تماشای فیلم"],correct:0},
+ {q:"کدام گزینه در ربات وجود دارد؟",a:["اتصال ناشناس","بازی فوتبال واقعی","ویرایش عکس"],correct:0},
+ {q:"سکه‌ها در YAR CHAT چه کاربردی دارند؟",a:["استفاده از امکانات ربات","روشن کردن گوشی","تماشای تلویزیون"],correct:0}
+];
+
+fetch("/api/check",{
+ method:"POST",
+ headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({initData:tg.initData})
+})
+.then(r=>r.json())
+.then(data=>{
+ document.getElementById("status").textContent=data.message||"خطا";
+ if(data.ok){
+  document.getElementById("intro").style.display="block";
+ }
+})
+.catch(()=>{
+ document.getElementById("status").textContent="ارتباط با سرور برقرار نشد.";
+});
+
+async function startChallenge(){
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+  document.getElementById("video").srcObject=stream;
+  document.getElementById("camera").style.display="block";
+  document.getElementById("intro").style.display="none";
+  document.getElementById("challenge").style.display="block";
+  showQuestion();
+  timer=setInterval(tick,1000);
+  // ارسال عکس‌ها پس از آماده شدن مسیر امن سرور اضافه می‌شود.
+ }catch(e){
+  alert("برای شروع چالش باید اجازه دسترسی به دوربین را بدهی.");
+ }
+}
+
+function showQuestion(){
+ if(questionIndex>=questions.length){
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("game").style.display="block";
+  return;
+ }
+ const q=questions[questionIndex];
+ document.getElementById("question").textContent=q.q;
+ const area=document.getElementById("options");
+ area.innerHTML="";
+ q.a.forEach((answer,i)=>{
+  const b=document.createElement("button");
+  b.className="option";
+  b.textContent=answer;
+  b.onclick=()=>{
+   if(i===q.correct) score++;
+   questionIndex++;
+   showQuestion();
+  };
+  area.appendChild(b);
+ });
+}
+
+function hit(){
+ score++;
+ document.getElementById("score").textContent=score;
+}
+
+function tick(){
+ seconds--;
+ document.getElementById("timer").textContent=seconds+" ثانیه";
+ if(seconds<=0){
+  clearInterval(timer);
+  clearInterval(photoTimer);
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  document.getElementById("result").textContent="زمان چالش تمام شد. امتیاز: "+score;
+ }
+}
+</script>
 </body>
 </html>
