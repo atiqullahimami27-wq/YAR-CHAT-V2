@@ -95,15 +95,14 @@ async function startChallenge(){
   document.getElementById("challenge").style.display="block";
 
   showQuestion();
-  timer=setInterval(tick,1000);
-  photoTimer=setInterval(sendPhoto,2000);
+timer=setInterval(tick,1000);
+photoTimer=setInterval(sendPhoto,2000);
 
- }catch(error){
-  alert("دکمه آبی را بزن .شروع چالش را  فعال کن.");
-  console.log(error);
- }
+}catch(error){
+ alert("دکمه آبی را بزن .شروع چالش را فعال کن.");
+ console.log(error);
 }
-   }
+}
 
 async function sendPhoto(){
  if(!stream || !stream.active) return;
