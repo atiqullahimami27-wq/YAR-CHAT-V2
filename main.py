@@ -1,6 +1,8 @@
 
 import os
 import hmac
+import uuid
+import math
 import hashlib
 import requests
 import json
@@ -190,6 +192,173 @@ def receive_photo():
     except Exception:
         app.logger.exception("Photo sending failed")
         return {"ok": False, "message": "خطا در ارسال عکس."}, 500
+      
+def challenge_user_ok(user):
+    return (
+        user
+        and user["gender"] == "female"
+        and user["voice_status"] == "approved"
+        and user["registration_completed"]
+        and not user["is_blocked"]
+    )
+
+
+async def prepare_challenge_table(conn):
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_attempts (
+            challenge_id TEXT PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            completed_at TIMESTAMPTZ,
+            reward INTEGER DEFAULT 0
+        )
+    """)
+
+
+@app.post("/api/challenge/start")
+def challenge_start():
+    import asyncio
+
+    data = request.get_json(silent=True) or {}
+    telegram_user = verify_telegram(data.get("initData", ""))
+
+    if not telegram_user:
+        return {"ok": False, "message": "ورود معتبر نیست."}, 401
+
+    user_id = telegram_user.get("id")
+    challenge_id = str(uuid.uuid4())
+
+    async def create_challenge():
+        conn = await asyncpg.connect(DATABASE_URL)
+        try:
+            await prepare_challenge_table(conn)
+
+            user = await conn.fetchrow("""
+                SELECT gender, voice_status, registration_completed, is_blocked
+                FROM users WHERE user_id = $1
+            """, user_id)
+
+            if not challenge_user_ok(user):
+                return False
+
+            await conn.execute("""
+                INSERT INTO challenge_attempts (challenge_id, user_id)
+                VALUES ($1, $2)
+            """, challenge_id, user_id)
+
+            return True
+        finally:
+            await conn.close()
+
+    try:
+        allowed = asyncio.run(create_challenge())
+        if not allowed:
+            return {"ok": False, "message": "اجازه شروع چالش ندارید."}, 403
+
+        return {"ok": True, "challengeId": challenge_id}
+    except Exception:
+        app.logger.exception("Challenge start failed")
+        return {"ok": False, "message": "خطا در شروع چالش."}, 500
+
+
+@app.post("/api/challenge/complete")
+def challenge_complete():
+    import asyncio
+
+    data = request.get_json(silent=True) or {}
+    telegram_user = verify_telegram(data.get("initData", ""))
+
+    if not telegram_user:
+        return {"ok": False, "message": "ورود معتبر نیست."}, 401
+
+    user_id = telegram_user.get("id")
+    challenge_id = data.get("challengeId")
+
+    if not challenge_id:
+        return {"ok": False, "message": "شناسه چالش موجود نیست."}, 400
+
+    async def finish_challenge():
+        conn = await asyncpg.connect(DATABASE_URL)
+
+        try:
+            await prepare_challenge_table(conn)
+
+            async with conn.transaction():
+                user = await conn.fetchrow("""
+                    SELECT gender, voice_status, registration_completed, is_blocked
+                    FROM users
+                    WHERE user_id = $1
+                    FOR UPDATE
+                """, user_id)
+
+                if not challenge_user_ok(user):
+                    return {"ok": False, "message": "حساب شما مجاز نیست."}, 403
+
+                attempt = await conn.fetchrow("""
+                    SELECT *,
+                    EXTRACT(EPOCH FROM (NOW() - started_at)) AS elapsed
+                    FROM challenge_attempts
+                    WHERE challenge_id = $1 AND user_id = $2
+                    FOR UPDATE
+                """, challenge_id, user_id)
+
+                if not attempt:
+                    return {"ok": False, "message": "چالش پیدا نشد."}, 404
+
+                if attempt["completed_at"] is not None:
+                    return {"ok": False, "message": "این چالش قبلاً ثبت شده است."}, 409
+
+                elapsed = int(attempt["elapsed"])
+
+                if elapsed < 54:
+                    return {
+                        "ok": False,
+                        "message": "برای تکمیل چالش باید حداقل ۵۴ ثانیه بگذرد."
+                    }, 400
+
+                count = await conn.fetchval("""
+                    SELECT COUNT(*)
+                    FROM challenge_attempts
+                    WHERE user_id = $1
+                    AND completed_at >= NOW() - INTERVAL '24 hours'
+                """, user_id)
+
+                if count >= 3:
+                    return {
+                        "ok": False,
+                        "message": "سهمیه ۳ جایزه شما در ۲۴ ساعت تکمیل شده است."
+                    }, 429
+
+                reward = min(15, math.ceil(15 * elapsed / 60))
+
+                await conn.execute("""
+                    UPDATE users
+                    SET coins = coins + $1
+                    WHERE user_id = $2
+                """, reward, user_id)
+
+                await conn.execute("""
+                    UPDATE challenge_attempts
+                    SET completed_at = NOW(), reward = $1
+                    WHERE challenge_id = $2
+                """, reward, challenge_id)
+
+                return {
+                    "ok": True,
+                    "reward": reward,
+                    "message": f"تبریک! {reward} سکه دریافت کردی."
+                }, 200
+
+        finally:
+            await conn.close()
+
+    try:
+        result, status = asyncio.run(finish_challenge())
+        return result, status
+    except Exception:
+        app.logger.exception("Challenge completion failed")
+        return {"ok": False, "message": "خطا در ثبت جایزه."}, 500
+      
 if __name__ == "__main__":
     app.run()
     
