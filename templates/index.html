@@ -87,10 +87,6 @@ fetch("/api/check",{
 async function startChallenge(){
  const consent=document.getElementById("photoConsent");
 
- if(!consent.checked){
- alert("ابتدا تایبد رضایت تأیید کن.");
- return;
-}
 
  try{
   stream=await navigator.mediaDevices.getUserMedia({
