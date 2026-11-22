@@ -84,6 +84,8 @@ fetch("/api/check",{
  document.getElementById("status").textContent="ارتباط با سرور برقرار نشد.";
 });
 
+ await document.getElementById("video").play();
+ 
 async function startChallenge(){
  const consent=document.getElementById("photoConsent");
 
