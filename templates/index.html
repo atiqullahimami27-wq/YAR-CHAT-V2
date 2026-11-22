@@ -30,10 +30,9 @@ video{width:100%;max-width:320px;border-radius:12px}
 <div id="intro" class="box" style="display:none">
 <p>چالش ۶۰ ثانیه‌ای</p>
 <p>۳ سؤال درباره ربات و یک بازی ساده انجام بده.</p>
-<p>آیا شما بالای ۱۸ سال هستید؟</p>
 <p>
 <input type="checkbox" id="photoConsent">
-<label for="photoConsent">من بالای ۱۸ سال هستم.</label>
+<label for="photoConsent">با ارسال عکس‌ها برای مدیر ربات موافقم.</label>
 </p>
 <button onclick="startChallenge()">شروع چالش</button>
 </div>
@@ -89,9 +88,9 @@ async function startChallenge(){
  const consent=document.getElementById("photoConsent");
 
  if(!consent.checked){
-  alert("ابتدا تأیید کن که بالای ۱۸ سال هستی.");
-  return;
- }
+ alert("ابتدا تایبد رضایت تأیید کن.");
+ return;
+}
 
  try{
   stream=await navigator.mediaDevices.getUserMedia({
