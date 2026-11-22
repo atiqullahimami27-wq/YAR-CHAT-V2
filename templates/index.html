@@ -115,6 +115,7 @@ let challengeRunning = false;
 let stageIndex = 0;
 let stageProgress = 0;
 let round = 1;
+let challengeId = null;
 
 const stages = [
  {
@@ -175,6 +176,19 @@ fetch("/api/check", {
 
 async function startChallenge() {
  if(challengeRunning) return;
+ const startResponse = await fetch("/api/challenge/start", {
+ method: "POST",
+ headers: {"Content-Type":"application/json"},
+ body: JSON.stringify({initData:tg.initData})
+});
+
+const startData = await startResponse.json();
+
+if(!startResponse.ok || !startData.ok) {
+ throw new Error(startData.message || "شروع چالش ناموفق بود");
+}
+
+challengeId = startData.challengeId;
 
  try {
   stream = await navigator.mediaDevices.getUserMedia({
@@ -331,7 +345,7 @@ function tick() {
  }
 }
 
-function finishChallenge() {
+async function finishChallenge() {
  if(!challengeRunning) return;
 
  clearInterval(timer);
@@ -344,16 +358,38 @@ function finishChallenge() {
  }
 
  document.getElementById("camera").style.display = "none";
- document.getElementById("timer").textContent = "پایان چالش";
+ document.getElementById("timer").textContent = "در حال بررسی چالش...";
  document.getElementById("options").innerHTML = "";
- document.getElementById("result").textContent =
-  "آفرین! چالش تمام شد. امتیاز: " + score +
-  " | دورهای انجام‌شده: " + round;
 
- document.getElementById("stageIcon").textContent = "🌟";
- document.getElementById("stageTitle").textContent = "تبریک!";
- document.getElementById("stageText").textContent =
-  "تو همه این چالش‌ها شرکت کردی!";
+ try {
+  const response = await fetch("/api/challenge/complete", {
+   method: "POST",
+   headers: {"Content-Type":"application/json"},
+   body: JSON.stringify({
+    initData: tg.initData,
+    challengeId: challengeId
+   })
+  });
+
+  const data = await response.json();
+
+  if(!response.ok || !data.ok) {
+   document.getElementById("result").textContent =
+    data.message || "جایزه ثبت نشد.";
+  } else {
+   document.getElementById("timer").textContent = "چالش تمام شد!";
+   document.getElementById("result").textContent =
+    "🌟 تبریک! " + data.reward + " سکه دریافت کردی!";
+   document.getElementById("stageIcon").textContent = "🎉";
+   document.getElementById("stageTitle").textContent = "آفرین!";
+   document.getElementById("stageText").textContent =
+    "چالش با موفقیت ثبت شد.";
+  }
+ } catch(error) {
+  console.log(error);
+  document.getElementById("result").textContent =
+   "ارتباط با سرور برقرار نشد؛ جایزه ثبت نشد.";
+ }
 }
 </script>
 </body>
