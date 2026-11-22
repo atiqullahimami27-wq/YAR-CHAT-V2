@@ -7,12 +7,14 @@
 <style>
  input[type="checkbox"] {
   display: inline-block !important;
-  width: 22px;
-  height: 22px;
   appearance: auto !important;
   -webkit-appearance: checkbox !important;
-  cursor: pointer;
- }
+  width: 25px !important;
+  height: 25px !important;
+  opacity: 1 !important;
+  accent-color: #0d9488;
+  vertical-align: middle;
+}
 body{font-family:Arial;background:#101827;color:white;text-align:center;padding:20px}
 .box{background:#1e293b;padding:18px;border-radius:15px;margin:15px 0}
 button{background:#0d9488;color:white;border:0;padding:12px 20px;border-radius:10px;margin:7px;font-size:16px}
@@ -29,8 +31,7 @@ video{width:100%;max-width:320px;border-radius:12px}
 <p>چالش ۶۰ ثانیه‌ای</p>
 <p>۳ سؤال درباره ربات و یک بازی ساده انجام بده.</p>
 <p>برای تأیید چالش، تایید سن ضروری است آیا شما بالای 18 سال هستید.</p>
- <label>
-<input type="checkbox" id="photoConsent">
+<input type="checkbox" id="photoConsent" style="display:inline-block !important; width:25px; height:25px;">
 من بالای 18 سال هستم.
  </label>
 <button onclick="startChallenge()">شروع چالش</button>
